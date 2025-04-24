@@ -1,4 +1,4 @@
-export default function HomePage() {
+export default function Page() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
       <header className="p-6 shadow-md bg-white dark:bg-gray-800">
