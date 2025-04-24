@@ -1,18 +1,62 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import emailjs from 'emailjs-com';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function ContactForm() {
   const form = useRef();
+  const recaptchaRef = useRef(null);
   const [sending, setSending] = useState(false);
+  const [recaptchaWidgetId, setRecaptchaWidgetId] = useState(null);
 
+  useEffect(() => {
+    // Define first to avoid hoisting issues
+    const renderRecaptcha = () => {
+      if (window.grecaptcha && recaptchaRef.current && recaptchaWidgetId === null) {
+        const widgetId = window.grecaptcha.render(recaptchaRef.current, {
+          sitekey: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+        });
+        setRecaptchaWidgetId(widgetId);
+      }
+    };
+  
+    // Dynamically load the reCAPTCHA script
+    const scriptId = 'recaptcha-script';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit';
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+    } else {
+      // Already exists, try rendering
+      renderRecaptcha(); // ✅ now safe to call
+    }
+  
+    // Google's global callback
+    window.onRecaptchaLoad = () => {
+      renderRecaptcha();
+    };
+  
+    // Clean up script on unmount (optional)
+    return () => {
+      window.onRecaptchaLoad = undefined;
+    };
+  }, [recaptchaWidgetId]);
+  
   const sendEmail = async (e) => {
     e.preventDefault();
 
-    const recaptchaResponse = grecaptcha.getResponse();
-    if (!recaptchaResponse) {
-      toast.error('Please verify the reCAPTCHA before submitting.');
+    const grecaptcha = window.grecaptcha;
+    if (!grecaptcha || recaptchaWidgetId === null) {
+      toast.error('reCAPTCHA not ready. Please try again.');
+      return;
+    }
+
+    const token = grecaptcha.getResponse(recaptchaWidgetId);
+    if (!token) {
+      toast.error('Please complete the reCAPTCHA challenge.');
       return;
     }
 
@@ -25,12 +69,12 @@ export default function ContactForm() {
         process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
         form.current,
         process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
-      );      
+      );
       toast.success('Message sent!', { id: 'sending' });
       form.current.reset();
-      grecaptcha.reset();
+      grecaptcha.reset(recaptchaWidgetId);
     } catch (err) {
-      console.error(err);
+      console.error('EmailJS Error:', err);
       toast.error('Failed to send. Please try again.', { id: 'sending' });
     } finally {
       setSending(false);
@@ -64,8 +108,8 @@ export default function ContactForm() {
           />
         </div>
 
-        {/* ✅ reCAPTCHA widget */}
-        <div className="g-recaptcha" data-sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}></div>
+        {/* Explicit reCAPTCHA render */}
+        <div ref={recaptchaRef} className="g-recaptcha" />
 
         <button
           type="submit"
