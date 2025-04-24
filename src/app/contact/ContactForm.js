@@ -21,11 +21,11 @@ export default function ContactForm() {
 
     try {
       await emailjs.sendForm(
-        'service_bxb1izq',
-        'template_ritzh2b',
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
         form.current,
-        'YOUR_EMAILJS_PUBLIC_KEY' // replace this
-      );
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+      );      
       toast.success('Message sent!', { id: 'sending' });
       form.current.reset();
       grecaptcha.reset();
@@ -65,7 +65,7 @@ export default function ContactForm() {
         </div>
 
         {/* ✅ reCAPTCHA widget */}
-        <div className="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+        <div className="g-recaptcha" data-sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}></div>
 
         <button
           type="submit"
