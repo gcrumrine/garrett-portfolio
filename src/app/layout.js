@@ -3,16 +3,22 @@ import PasswordGate from '@/components/PasswordGate';
 
 export const metadata = {
   title: 'Garrett Crumrine Portfolio',
-  description: 'Coming soon.',
+  description: 'AI Researcher, HPC Developer, and Engineer',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        {/* Load Google reCAPTCHA */}
+        <script
+          src="https://www.google.com/recaptcha/api.js"
+          async
+          defer
+        ></script>
+      </head>
       <body>
-        <PasswordGate>
-          {children}
-        </PasswordGate>
+        <PasswordGate>{children}</PasswordGate>
       </body>
     </html>
   );

@@ -1,80 +1,80 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import emailjs from 'emailjs-com';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function ContactForm() {
-  const [status, setStatus] = useState('');
+  const form = useRef();
+  const [sending, setSending] = useState(false);
 
-  const sendEmail = (e) => {
+  const sendEmail = async (e) => {
     e.preventDefault();
-    setStatus('Sending...');
 
-    toast.loading('Sending message...', { id: 'sendToast' });
+    const recaptchaResponse = grecaptcha.getResponse();
+    if (!recaptchaResponse) {
+      toast.error('Please verify the reCAPTCHA before submitting.');
+      return;
+    }
 
-    emailjs.sendForm(
-      'service_bxb1izq',
-      'template_ritzh2b',
-      e.target,
-      '4qFRWxsFgSRCDOowz'
-    ).then(
-      () => {
-        toast.success('Message sent!', { id: 'sendToast' });
-        setStatus('Message sent successfully!');
-        e.target.reset();
-      },
-      (error) => {
-        console.error(error.text);
-        toast.error('Failed to send. Please try again.', { id: 'sendToast' });
-        setStatus('An error occurred. Please try again.');
-      }
-    );
+    setSending(true);
+    toast.loading('Sending...', { id: 'sending' });
+
+    try {
+      await emailjs.sendForm(
+        'service_bxb1izq',
+        'template_ritzh2b',
+        form.current,
+        'YOUR_EMAILJS_PUBLIC_KEY' // replace this
+      );
+      toast.success('Message sent!', { id: 'sending' });
+      form.current.reset();
+      grecaptcha.reset();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to send. Please try again.', { id: 'sending' });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg shadow-xl space-y-6">
+    <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg shadow-lg text-white space-y-6">
       <Toaster position="top-right" />
-      <h1 className="text-4xl font-bold text-left text-white">Share your contact information with me so I dont miss anything from you!</h1>
-      <form onSubmit={sendEmail} className="space-y-4">
-        {[
-          { label: 'Title', name: 'title', type: 'text' },
-          { label: 'Name', name: 'name', type: 'text', required: true },
-          { label: 'Email', name: 'email', type: 'email', required: true },
-          { label: 'Phone', name: 'phone', type: 'tel' },
-          { label: 'Company', name: 'company', type: 'text' },
-          { label: 'Address', name: 'address', type: 'text' }
-        ].map(({ label, name, type, required }) => (
-          <div key={name}>
-            <label htmlFor={name} className="block text-sm font-medium mb-1 text-gray-300">
-              {label}
-            </label>
+      <h2 className="text-3xl font-bold text-center">Contact Me</h2>
+      <form ref={form} onSubmit={sendEmail} className="space-y-4">
+        {['title', 'name', 'email', 'phone', 'company', 'address'].map((field) => (
+          <div key={field}>
+            <label className="block text-sm font-medium capitalize">{field}</label>
             <input
-              type={type}
-              name={name}
-              required={required}
-              className="w-full px-4 py-2 border border-gray-600 rounded-md bg-gray-900 text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              type={field === 'email' ? 'email' : 'text'}
+              name={field}
+              required={field === 'name' || field === 'email'}
+              className="w-full px-4 py-2 bg-gray-800 rounded border border-gray-700 focus:outline-none"
             />
           </div>
         ))}
+
         <div>
-          <label htmlFor="message" className="block text-sm font-medium mb-1 text-gray-300">Message</label>
+          <label className="block text-sm font-medium">Message</label>
           <textarea
             name="message"
             required
-            rows={6}
-            className="w-full px-4 py-2 border border-gray-600 rounded-md bg-gray-900 text-white focus:ring-2 focus:ring-blue-600 focus:outline-none"
-          ></textarea>
+            rows={5}
+            className="w-full px-4 py-2 bg-gray-800 rounded border border-gray-700 focus:outline-none"
+          />
         </div>
+
+        {/* ✅ reCAPTCHA widget */}
+        <div className="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+
         <button
           type="submit"
-          className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-colors"
+          disabled={sending}
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded font-semibold"
         >
-          Send Message
+          {sending ? 'Sending...' : 'Send Message'}
         </button>
       </form>
-      {status && (
-        <p className="text-center mt-2 text-sm text-gray-400">{status}</p>
-      )}
     </div>
   );
 }
